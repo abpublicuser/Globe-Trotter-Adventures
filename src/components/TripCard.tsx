@@ -39,9 +39,16 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
     }
   };
 
+  const toggleExpanded = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!isExpanded) {
+      setIsLoadingImages(true);
+    }
+    setIsExpanded(!isExpanded);
+  };
+
   useEffect(() => {
     if (isExpanded) {
-      setIsLoadingImages(true);
       const q = query(
         collection(db, 'moments'),
         where('tripId', '==', trip.id)
@@ -75,7 +82,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
       className="overflow-hidden rounded-3xl bg-white ring-1 ring-natural-border shadow-sm transition-shadow hover:shadow-md"
     >
       <div 
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={toggleExpanded}
         className="flex cursor-pointer select-none items-stretch justify-between gap-4 p-4 transition-colors hover:bg-natural-bg/50 sm:p-5"
       >
         <div className="flex flex-1 flex-col justify-center py-2">
