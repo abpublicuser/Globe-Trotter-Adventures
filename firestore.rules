@@ -29,11 +29,24 @@ service cloud.firestore {
     }
 
     // 3. Entity Validation
-    function isValidPhoto(data) {
-      return data.keys().hasAll(['imageUrl', 'note', 'userId', 'userName', 'userEmail', 'createdAt'])
+    function isValidTrip(data) {
+      return data.keys().hasAll(['name', 'coverImageUrl', 'userId', 'userName', 'userEmail', 'createdAt'])
         && data.keys().size() == 6
-        && data.imageUrl is string && data.imageUrl.size() <= 1045000 // Close to 1MB document limit
-        && data.note is string && data.note.size() <= 1000
+        && data.name is string && data.name.size() <= 100
+        && data.coverImageUrl is string && data.coverImageUrl.size() <= 1045000
+        && data.userId is string && data.userId == request.auth.uid
+        && data.userName is string && data.userName.size() <= 100
+        && data.userEmail is string && data.userEmail.size() <= 100
+        && data.createdAt == request.time;
+    }
+
+    function isValidMoment(data) {
+      return data.keys().hasAll(['tripId', 'date', 'images', 'note', 'userId', 'userName', 'userEmail', 'createdAt'])
+        && data.keys().size() == 8
+        && data.tripId is string
+        && data.date is string
+        && data.images is list
+        && data.note is string && data.note.size() <= 2000
         && data.userId is string && data.userId == request.auth.uid
         && data.userName is string && data.userName.size() <= 100
         && data.userEmail is string && data.userEmail.size() <= 100
@@ -41,22 +54,17 @@ service cloud.firestore {
     }
 
     // 4. Collection Rules
-    match /photos/{photoId} {
-      // allow list queries ONLY if they are public
-      allow list: if true;
-      allow get: if true;
+    match /trips/{tripId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidTrip(incoming());
+      allow update: if isSignedIn() && isOwner(existing().userId) && isValidTrip(incoming());
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
 
-      allow create: if isSignedIn() && isValidPhoto(incoming());
-
-      allow update: if isSignedIn() 
-        && isOwner(existing().userId)
-        && isValidPhoto(incoming())
-        && incoming().userId == existing().userId
-        && incoming().createdAt == existing().createdAt
-        && (
-          incoming().diff(existing()).affectedKeys().hasOnly(['imageUrl', 'note', 'userName', 'userEmail'])
-        );
-
+    match /moments/{momentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidMoment(incoming());
+      allow update: if isSignedIn() && isOwner(existing().userId) && isValidMoment(incoming());
       allow delete: if isSignedIn() && isOwner(existing().userId);
     }
   }

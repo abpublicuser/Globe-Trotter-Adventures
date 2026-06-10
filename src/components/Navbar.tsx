@@ -3,23 +3,42 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { User } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export default function Navbar() {
+export default function Navbar({ activeTab, setActiveTab }: { activeTab: 'explore' | 'my-trips', setActiveTab: (tab: 'explore' | 'my-trips') => void }) {
   const [user] = useAuthState(auth);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-natural-border bg-natural-bg/80 backdrop-blur-md">
       <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 transition-all duration-700 ease-in-out">
-        <div className="flex items-center gap-3">
-          <motion.div
-            initial={{ rotate: -20, scale: 0.8 }}
-            animate={{ rotate: 0, scale: 1 }}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-natural-sage font-display text-xl font-black italic text-white shadow-lg shadow-natural-sage/20"
-          >
-            G
-          </motion.div>
-          <span className="text-2xl font-semibold tracking-tight text-natural-text sm:text-3xl">
-            Globe Trotter Gallery
-          </span>
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ rotate: -20, scale: 0.8 }}
+              animate={{ rotate: 0, scale: 1 }}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-natural-sage font-display text-xl font-black italic text-white shadow-lg shadow-natural-sage/20"
+            >
+              G
+            </motion.div>
+            <span className="hidden text-2xl font-semibold tracking-tight text-natural-text sm:block sm:text-3xl">
+              Globe Trotter
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 border-l border-natural-border pl-8">
+            <button
+              onClick={() => setActiveTab('explore')}
+              className={`text-xs font-bold uppercase tracking-[0.2em] transition-colors ${activeTab === 'explore' ? 'text-natural-sage' : 'text-natural-muted hover:text-natural-text'}`}
+            >
+              Explore
+            </button>
+            {user && (
+              <button
+                onClick={() => setActiveTab('my-trips')}
+                className={`text-xs font-bold uppercase tracking-[0.2em] transition-colors ${activeTab === 'my-trips' ? 'text-natural-sage' : 'text-natural-muted hover:text-natural-text'}`}
+              >
+                My Journeys
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-6">

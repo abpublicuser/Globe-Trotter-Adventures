@@ -1,8 +1,25 @@
 import { Timestamp } from 'firebase/firestore';
 
-export interface Photo {
+export interface Trip {
   id: string;
-  imageUrl: string;
+  name: string;
+  coverImageUrl: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  createdAt: Timestamp;
+}
+
+export interface MomentImage {
+  url: string;
+  comment: string;
+}
+
+export interface Moment {
+  id: string;
+  tripId: string;
+  date: string;
+  images: MomentImage[];
   note: string;
   userId: string;
   userName: string;
