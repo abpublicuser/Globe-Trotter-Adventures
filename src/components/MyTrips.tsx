@@ -79,14 +79,14 @@ export default function MyTrips() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-12"
+      className="space-y-6"
     >
-      <header className="flex flex-col items-end justify-between gap-6 sm:flex-row">
+      <header className="flex flex-col items-end justify-between gap-4 sm:flex-row">
         <div>
-          <h1 className="text-4xl font-medium tracking-tight text-natural-text sm:text-6xl">
+          <h1 className="text-4xl font-medium tracking-tight text-natural-text sm:text-5xl">
             My Journeys
           </h1>
-          <p className="mt-2 text-lg italic text-natural-muted">
+          <p className="mt-1 text-base italic text-natural-muted">
             Your personal collection of wanderlust
           </p>
         </div>
@@ -114,7 +114,7 @@ export default function MyTrips() {
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <AnimatePresence mode="popLayout">
             {trips.map((trip) => (
               <TripCard 

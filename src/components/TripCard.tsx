@@ -1,7 +1,7 @@
 import { Trip, Moment } from '../types';
 import { db } from '../firebase';
 import { doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { Calendar, Trash2, MapPin, ChevronDown, Image as ImageIcon, Plus } from 'lucide-react';
+import { Calendar, Trash2, ChevronDown, Image as ImageIcon, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo, useEffect } from 'react';
 import AddMomentModal from './AddMomentModal';
@@ -72,14 +72,27 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className="overflow-hidden rounded-[2rem] bg-white ring-1 ring-natural-border shadow-sm transition-shadow hover:shadow-md"
+      className="overflow-hidden rounded-3xl bg-white ring-1 ring-natural-border shadow-sm transition-shadow hover:shadow-md"
     >
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex cursor-pointer select-none items-center justify-between p-6 hover:bg-natural-bg/50 transition-colors sm:p-8"
+        className="flex cursor-pointer select-none items-stretch justify-between gap-4 p-4 transition-colors hover:bg-natural-bg/50 sm:p-5"
       >
-        <div className="flex items-center gap-6">
-          <div className="h-16 w-16 overflow-hidden rounded-2xl shadow-sm shrink-0 ring-1 ring-black/5 sm:h-20 sm:w-20">
+        <div className="flex flex-1 flex-col justify-center py-2">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-natural-muted">
+            <Calendar className="h-3 w-3" />
+            {tripDate}
+          </div>
+          <h3 className="mt-1 text-xl font-bold leading-tight tracking-tight text-natural-text sm:text-2xl lg:text-3xl">
+            {trip.name}
+          </h3>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs font-medium text-natural-muted">by {trip.userName}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-shrink-0 items-center justify-end gap-3 sm:gap-6">
+          <div className="h-20 w-24 overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 sm:h-24 sm:w-32 md:h-28 md:w-40">
             <img
               src={trip.coverImageUrl}
               alt={trip.name}
@@ -87,25 +100,10 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
               loading="lazy"
             />
           </div>
-          <div>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-natural-muted">
-              <Calendar className="h-3 w-3" />
-              {tripDate}
-            </div>
-            <h3 className="mt-1 text-xl font-bold leading-tight tracking-tight text-natural-text sm:text-2xl">
-              {trip.name}
-            </h3>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-xs font-medium text-natural-muted">by {trip.userName}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.3 }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-natural-sage/10 text-natural-sage"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-natural-sage/10 text-natural-sage"
           >
             <ChevronDown className="h-5 w-5" />
           </motion.div>
@@ -120,10 +118,10 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
             exit={{ height: 0, opacity: 0 }}
             className="border-t border-natural-border"
           >
-            <div className="p-6 sm:p-8 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h4 className="text-sm font-bold uppercase tracking-widest text-natural-text">Trip Memories</h4>
-                <div className="flex flex-wrap items-center gap-3">
+            <div className="p-4 sm:p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-natural-text">Trip Memories</h4>
+                <div className="flex flex-wrap items-center gap-2">
                   {isOwnerView && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setIsAddMomentOpen(true); }}
@@ -154,21 +152,21 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
               </div>
 
               {isLoadingImages ? (
-                <div className="flex h-32 items-center justify-center">
-                  <div className="text-xs font-bold uppercase tracking-widest text-natural-muted/50 animate-pulse">Loading Memories...</div>
+                <div className="flex h-24 items-center justify-center">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-natural-muted/50 animate-pulse">Loading Memories...</div>
                 </div>
               ) : allImages.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {allImages.map((img, idx) => (
-                    <div key={idx} className="aspect-[4/3] overflow-hidden rounded-2xl bg-natural-bg ring-1 ring-black/5">
+                    <div key={idx} className="aspect-[4/3] overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5">
                       <img src={img.url} alt={`Memory ${idx}`} className="h-full w-full object-cover transition-transform hover:scale-105" />
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex h-32 flex-col items-center justify-center gap-2 text-natural-muted/30">
-                  <ImageIcon className="h-8 w-8" />
-                  <p className="text-xs font-bold uppercase tracking-widest">No photos yet</p>
+                <div className="flex h-24 flex-col items-center justify-center gap-2 text-natural-muted/30">
+                  <ImageIcon className="h-6 w-6" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest">No photos yet</p>
                 </div>
               )}
             </div>
