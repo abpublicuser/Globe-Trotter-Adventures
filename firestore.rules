@@ -1,0 +1,63 @@
+rules_version = '2';
+// Forced update for deployment retry
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 3. Entity Validation
+    function isValidPhoto(data) {
+      return data.keys().hasAll(['imageUrl', 'note', 'userId', 'userName', 'userEmail', 'createdAt'])
+        && data.keys().size() == 6
+        && data.imageUrl is string && data.imageUrl.size() <= 1045000 // Close to 1MB document limit
+        && data.note is string && data.note.size() <= 1000
+        && data.userId is string && data.userId == request.auth.uid
+        && data.userName is string && data.userName.size() <= 100
+        && data.userEmail is string && data.userEmail.size() <= 100
+        && data.createdAt == request.time;
+    }
+
+    // 4. Collection Rules
+    match /photos/{photoId} {
+      // allow list queries ONLY if they are public
+      allow list: if true;
+      allow get: if true;
+
+      allow create: if isSignedIn() && isValidPhoto(incoming());
+
+      allow update: if isSignedIn() 
+        && isOwner(existing().userId)
+        && isValidPhoto(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['imageUrl', 'note', 'userName', 'userEmail'])
+        );
+
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
+  }
+}

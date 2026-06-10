@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "Photo": {
+      "title": "Photo",
+      "description": "Store photo metadata and image data",
+      "type": "object",
+      "properties": {
+        "imageUrl": {
+          "type": "string",
+          "description": "The base64 encoded image (supports up to 10MB original via client-side optimization)"
+        },
+        "note": {
+          "type": "string",
+          "description": "A brief note for the photo"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who uploaded the photo"
+        },
+        "userName": {
+          "type": "string",
+          "description": "The display name of the uploader"
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "The email of the uploader"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the photo was uploaded"
+        }
+      },
+      "required": ["imageUrl", "note", "userId", "userName", "userEmail", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/photos/{photoId}": {
+      "schema": "Photo",
+      "description": "Collection of all shared photos"
+    }
+  }
+}

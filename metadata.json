@@ -1,0 +1,6 @@
+{
+  "name": "Globe Trotter Gallery",
+  "description": "A collaborative photo sharing platform where users can share moments with personal notes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
