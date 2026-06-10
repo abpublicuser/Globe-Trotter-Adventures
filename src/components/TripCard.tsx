@@ -5,6 +5,7 @@ import { Calendar, Trash2, ChevronDown, Image as ImageIcon, Plus } from 'lucide-
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo, useEffect } from 'react';
 import AddMomentModal from './AddMomentModal';
+import ImageModal from './ImageModal';
 
 interface TripCardProps {
   trip: Trip;
@@ -18,6 +19,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
   const [moments, setMoments] = useState<Moment[]>([]);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [isAddMomentOpen, setIsAddMomentOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const tripDate = useMemo(() => {
     const d = trip.createdAt?.toDate?.() || new Date();
@@ -165,7 +167,11 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
               ) : allImages.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {allImages.map((img, idx) => (
-                    <div key={idx} className="aspect-[4/3] overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5">
+                    <div 
+                      key={idx} 
+                      onClick={(e) => { e.stopPropagation(); setSelectedImage(img.url); }}
+                      className="aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5"
+                    >
                       <img src={img.url} alt={`Memory ${idx}`} className="h-full w-full object-cover transition-transform hover:scale-105" />
                     </div>
                   ))}
@@ -188,6 +194,15 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
           tripId={trip.id} 
         />
       )}
+
+      <AnimatePresence>
+        {selectedImage && (
+          <ImageModal 
+            imageUrl={selectedImage} 
+            onClose={() => setSelectedImage(null)} 
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
