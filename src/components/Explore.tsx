@@ -95,7 +95,7 @@ export default function Explore({ onStartJourney }: { onStartJourney?: () => voi
           <p className="text-xl font-medium">No journeys shared yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-6">
           <AnimatePresence mode="popLayout">
             {trips.map((trip) => (
               <TripCard key={trip.id} trip={trip} />

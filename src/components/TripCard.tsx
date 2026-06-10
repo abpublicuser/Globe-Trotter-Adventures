@@ -1,9 +1,10 @@
-import { Trip } from '../types';
+import { Trip, Moment } from '../types';
 import { db } from '../firebase';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { Calendar, Trash2, MapPin } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useState, useMemo } from 'react';
+import { doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { Calendar, Trash2, MapPin, ChevronDown, Image as ImageIcon, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useState, useMemo, useEffect } from 'react';
+import AddMomentModal from './AddMomentModal';
 
 interface TripCardProps {
   trip: Trip;
@@ -13,15 +14,19 @@ interface TripCardProps {
 
 export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [moments, setMoments] = useState<Moment[]>([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [isAddMomentOpen, setIsAddMomentOpen] = useState(false);
 
   const tripDate = useMemo(() => {
     const d = trip.createdAt?.toDate?.() || new Date();
-    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }, [trip.createdAt]);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this entire journey and all its moments?')) return;
+    if (!window.confirm('Are you sure you want to delete this journey and all its moments?')) return;
     
     setIsDeleting(true);
     try {
@@ -34,62 +39,150 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
     }
   };
 
+  useEffect(() => {
+    if (isExpanded) {
+      setIsLoadingImages(true);
+      const q = query(
+        collection(db, 'moments'),
+        where('tripId', '==', trip.id)
+      );
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const momentData: Moment[] = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Moment));
+        setMoments(momentData);
+        setIsLoadingImages(false);
+      });
+      return () => unsubscribe();
+    }
+  }, [isExpanded, trip.id]);
+
+  const allImages = moments.flatMap(m => m.images);
+
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick?.(trip.id);
+  };
+
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      whileHover={{ y: -8 }}
-      onClick={() => onClick?.(trip.id)}
-      className={`group relative overflow-hidden rounded-[2.5rem] bg-white shadow-sm ring-1 ring-natural-border transition-all hover:shadow-xl ${onClick ? 'cursor-pointer' : ''}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="overflow-hidden rounded-[2rem] bg-white ring-1 ring-natural-border shadow-sm transition-shadow hover:shadow-md"
     >
-      <div className="aspect-[4/5] overflow-hidden">
-        <img
-          src={trip.coverImageUrl}
-          alt={trip.name}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 transition-opacity group-hover:opacity-80" />
-      </div>
-
-      <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">
-          <Calendar className="h-3 w-3" />
-          {tripDate}
-        </div>
-        <h3 className="mt-2 text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
-          {trip.name}
-        </h3>
-        
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 overflow-hidden rounded-full border border-white/20">
-              <div className="flex h-full w-full items-center justify-center bg-natural-sage text-[10px] font-bold uppercase italic">
-                {trip.userName[0]}
-              </div>
-            </div>
-            <span className="text-xs font-medium tracking-wide opacity-80">by {trip.userName}</span>
+      <div 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex cursor-pointer select-none items-center justify-between p-6 hover:bg-natural-bg/50 transition-colors sm:p-8"
+      >
+        <div className="flex items-center gap-6">
+          <div className="h-16 w-16 overflow-hidden rounded-2xl shadow-sm shrink-0 ring-1 ring-black/5 sm:h-20 sm:w-20">
+            <img
+              src={trip.coverImageUrl}
+              alt={trip.name}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
           </div>
+          <div>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-natural-muted">
+              <Calendar className="h-3 w-3" />
+              {tripDate}
+            </div>
+            <h3 className="mt-1 text-xl font-bold leading-tight tracking-tight text-natural-text sm:text-2xl">
+              {trip.name}
+            </h3>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs font-medium text-natural-muted">by {trip.userName}</span>
+            </div>
+          </div>
+        </div>
 
-          {isOwnerView && (
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="rounded-full bg-white/10 p-2 text-white/60 backdrop-blur-md transition-all hover:bg-red-500 hover:text-white disabled:opacity-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
+        <div className="flex items-center gap-4">
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-natural-sage/10 text-natural-sage"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </motion.div>
         </div>
       </div>
 
-      <div className="absolute right-6 top-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-transform group-hover:scale-110">
-          <MapPin className="h-5 w-5" />
-        </div>
-      </div>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t border-natural-border"
+          >
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h4 className="text-sm font-bold uppercase tracking-widest text-natural-text">Trip Memories</h4>
+                <div className="flex flex-wrap items-center gap-3">
+                  {isOwnerView && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setIsAddMomentOpen(true); }}
+                      className="flex items-center gap-1 rounded-xl bg-natural-sage/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-natural-sage transition-colors hover:bg-natural-sage hover:text-white"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Photos
+                    </button>
+                  )}
+                  {onClick && (
+                    <button
+                      onClick={handleActionClick}
+                      className="text-xs font-bold uppercase tracking-widest text-natural-sage hover:text-natural-sage-hover hover:underline pl-2"
+                    >
+                      View Details
+                    </button>
+                  )}
+                  {isOwnerView && (
+                    <button
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-natural-muted/50 hover:bg-red-50 hover:text-red-500 transition-all disabled:opacity-50 ml-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {isLoadingImages ? (
+                <div className="flex h-32 items-center justify-center">
+                  <div className="text-xs font-bold uppercase tracking-widest text-natural-muted/50 animate-pulse">Loading Memories...</div>
+                </div>
+              ) : allImages.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {allImages.map((img, idx) => (
+                    <div key={idx} className="aspect-[4/3] overflow-hidden rounded-2xl bg-natural-bg ring-1 ring-black/5">
+                      <img src={img.url} alt={`Memory ${idx}`} className="h-full w-full object-cover transition-transform hover:scale-105" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-32 flex-col items-center justify-center gap-2 text-natural-muted/30">
+                  <ImageIcon className="h-8 w-8" />
+                  <p className="text-xs font-bold uppercase tracking-widest">No photos yet</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {isOwnerView && (
+        <AddMomentModal 
+          isOpen={isAddMomentOpen} 
+          onClose={() => setIsAddMomentOpen(false)} 
+          tripId={trip.id} 
+        />
+      )}
     </motion.div>
   );
 }
