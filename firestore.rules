@@ -29,7 +29,7 @@ service cloud.firestore {
     }
 
     // 3. Entity Validation
-    function isValidTrip(data) {
+    function isValidTripCreate(data) {
       return data.keys().hasAll(['name', 'coverImageUrl', 'userId', 'userName', 'userEmail', 'createdAt'])
         && data.keys().size() == 6
         && data.name is string && data.name.size() <= 100
@@ -40,7 +40,18 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
-    function isValidMoment(data) {
+    function isValidTripUpdate(data) {
+      return data.keys().hasAll(['name', 'coverImageUrl', 'userId', 'userName', 'userEmail', 'createdAt'])
+        && data.keys().size() == 6
+        && data.name is string && data.name.size() <= 100
+        && data.coverImageUrl is string && data.coverImageUrl.size() <= 1045000
+        && data.userId == existing().userId
+        && data.userName == existing().userName
+        && data.userEmail == existing().userEmail
+        && data.createdAt == existing().createdAt;
+    }
+
+    function isValidMomentCreate(data) {
       return data.keys().hasAll(['tripId', 'date', 'images', 'note', 'userId', 'userName', 'userEmail', 'createdAt'])
         && data.keys().size() == 8
         && data.tripId is string
@@ -53,18 +64,31 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
+    function isValidMomentUpdate(data) {
+      return data.keys().hasAll(['tripId', 'date', 'images', 'note', 'userId', 'userName', 'userEmail', 'createdAt'])
+        && data.keys().size() == 8
+        && data.tripId == existing().tripId
+        && data.date is string
+        && data.images is list
+        && data.note is string && data.note.size() <= 2000
+        && data.userId == existing().userId
+        && data.userName == existing().userName
+        && data.userEmail == existing().userEmail
+        && data.createdAt == existing().createdAt;
+    }
+
     // 4. Collection Rules
     match /trips/{tripId} {
       allow read: if true;
-      allow create: if isSignedIn() && isValidTrip(incoming());
-      allow update: if isSignedIn() && isOwner(existing().userId) && isValidTrip(incoming());
+      allow create: if isSignedIn() && isValidTripCreate(incoming());
+      allow update: if isSignedIn() && isOwner(existing().userId) && isValidTripUpdate(incoming());
       allow delete: if isSignedIn() && isOwner(existing().userId);
     }
 
     match /moments/{momentId} {
       allow read: if true;
-      allow create: if isSignedIn() && isValidMoment(incoming());
-      allow update: if isSignedIn() && isOwner(existing().userId) && isValidMoment(incoming());
+      allow create: if isSignedIn() && isValidMomentCreate(incoming());
+      allow update: if isSignedIn() && isOwner(existing().userId) && isValidMomentUpdate(incoming());
       allow delete: if isSignedIn() && isOwner(existing().userId);
     }
   }

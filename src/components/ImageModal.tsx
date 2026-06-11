@@ -4,10 +4,11 @@ import { useEffect } from 'react';
 
 interface ImageModalProps {
   imageUrl: string;
+  comment?: string;
   onClose: () => void;
 }
 
-export default function ImageModal({ imageUrl, onClose }: ImageModalProps) {
+export default function ImageModal({ imageUrl, comment, onClose }: ImageModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -24,7 +25,7 @@ export default function ImageModal({ imageUrl, onClose }: ImageModalProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 sm:p-8 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4 sm:p-8 backdrop-blur-sm"
     >
       <button
         onClick={onClose}
@@ -33,15 +34,26 @@ export default function ImageModal({ imageUrl, onClose }: ImageModalProps) {
         <X className="h-6 w-6 sm:h-8 sm:w-8" />
       </button>
 
-      <motion.img
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        src={imageUrl}
-        alt="Full resolution memory"
-        className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
-      />
+      <div className="flex flex-col items-center justify-center h-full max-h-[90vh] w-full max-w-5xl gap-4" onClick={(e) => e.stopPropagation()}>
+        <motion.img
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          src={imageUrl}
+          alt={comment || "Full resolution memory"}
+          className="min-h-0 min-w-0 flex-shrink rounded-lg object-contain shadow-2xl"
+          style={{ maxHeight: comment ? 'calc(100% - 3rem)' : '100%' }}
+        />
+        {comment && (
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-shrink-0 text-center text-sm md:text-base text-white/90 max-w-2xl px-4"
+          >
+            {comment}
+          </motion.p>
+        )}
+      </div>
     </motion.div>
   );
 }

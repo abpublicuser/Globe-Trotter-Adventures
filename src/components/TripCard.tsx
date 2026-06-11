@@ -1,11 +1,12 @@
 import { Trip, Moment } from '../types';
 import { db } from '../firebase';
 import { doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { Calendar, Trash2, ChevronDown, Image as ImageIcon, Plus } from 'lucide-react';
+import { Calendar, Trash2, ChevronDown, Image as ImageIcon, Plus, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo, useEffect } from 'react';
 import AddMomentModal from './AddMomentModal';
 import ImageModal from './ImageModal';
+import EditTripModal from './EditTripModal';
 
 interface TripCardProps {
   trip: Trip;
@@ -19,7 +20,8 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
   const [moments, setMoments] = useState<Moment[]>([]);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [isAddMomentOpen, setIsAddMomentOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isEditTripOpen, setIsEditTripOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{url: string, comment?: string} | null>(null);
 
   const tripDate = useMemo(() => {
     const d = trip.createdAt?.toDate?.() || new Date();
@@ -68,7 +70,17 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
     }
   }, [isExpanded, trip.id]);
 
-  const allImages = moments.flatMap(m => m.images);
+  const groupedMoments = useMemo(() => {
+    const groups: Record<string, typeof moments[0]['images']> = {};
+    moments.forEach(m => {
+      if (!groups[m.date]) {
+        groups[m.date] = [];
+      }
+      groups[m.date].push(...m.images);
+    });
+
+    return Object.entries(groups).sort(([dateA], [dateB]) => dateA.localeCompare(dateB));
+  }, [moments]);
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,6 +121,14 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
               loading="lazy"
             />
           </div>
+          {isOwnerView && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsEditTripOpen(true); }}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-natural-sage/10 text-natural-sage hover:bg-natural-sage hover:text-white transition-all"
+            >
+              <Edit2 className="h-4 w-4" />
+            </button>
+          )}
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.3 }}
@@ -152,7 +172,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                     <button
                       onClick={handleDelete}
                       disabled={isDeleting}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-natural-muted/50 hover:bg-red-50 hover:text-red-500 transition-all disabled:opacity-50 ml-2"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-natural-muted/50 hover:bg-red-50 hover:text-red-500 transition-all disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -164,17 +184,42 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                 <div className="flex h-24 items-center justify-center">
                   <div className="text-[10px] font-bold uppercase tracking-widest text-natural-muted/50 animate-pulse">Loading Memories...</div>
                 </div>
-              ) : allImages.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {allImages.map((img, idx) => (
-                    <div 
-                      key={idx} 
-                      onClick={(e) => { e.stopPropagation(); setSelectedImage(img.url); }}
-                      className="aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5"
-                    >
-                      <img src={img.url} alt={`Memory ${idx}`} className="h-full w-full object-cover transition-transform hover:scale-105" />
-                    </div>
-                  ))}
+              ) : groupedMoments.length > 0 ? (
+                <div className="flex flex-col gap-8">
+                  {groupedMoments.map(([dateString, images]) => {
+                    const dateObj = new Date(dateString + 'T00:00:00');
+                    let formattedDate = dateString;
+                    if (!isNaN(dateObj.getTime())) {
+                      formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+                    }
+                    
+                    return (
+                      <div key={dateString} className="space-y-4 relative">
+                        <div className="flex items-center gap-4">
+                          <h5 className="text-[10px] font-bold uppercase tracking-[0.2em] text-natural-muted shrink-0 relative z-10 bg-white pr-4">
+                             {formattedDate}
+                          </h5>
+                          <div className="h-px bg-natural-border flex-1"></div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                          {images.map((img, idx) => (
+                            <div 
+                              key={idx} 
+                              onClick={(e) => { e.stopPropagation(); setSelectedImage(img); }}
+                              className="cursor-pointer group flex flex-col gap-2"
+                            >
+                              <div className="aspect-[4/3] overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5">
+                                <img src={img.url} alt={`Memory ${idx}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                              </div>
+                              {img.comment && (
+                                <p className="text-sm font-medium text-natural-text line-clamp-2 px-1">{img.comment}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex h-24 flex-col items-center justify-center gap-2 text-natural-muted/30">
@@ -195,10 +240,19 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
         />
       )}
 
+      {isOwnerView && (
+        <EditTripModal 
+          isOpen={isEditTripOpen} 
+          onClose={() => setIsEditTripOpen(false)} 
+          trip={trip} 
+        />
+      )}
+
       <AnimatePresence>
         {selectedImage && (
           <ImageModal 
-            imageUrl={selectedImage} 
+            imageUrl={selectedImage.url} 
+            comment={selectedImage.comment}
             onClose={() => setSelectedImage(null)} 
           />
         )}
