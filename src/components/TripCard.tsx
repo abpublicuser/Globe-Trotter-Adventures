@@ -1,10 +1,11 @@
 import { Trip, Moment } from '../types';
 import { db } from '../firebase';
 import { doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { Calendar, Trash2, ChevronDown, Image as ImageIcon, Plus, Edit2 } from 'lucide-react';
+import { Calendar, Trash2, ChevronDown, Image as ImageIcon, Plus, Edit2, PencilLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo, useEffect } from 'react';
 import AddMomentModal from './AddMomentModal';
+import EditMomentModal from './EditMomentModal';
 import ImageModal from './ImageModal';
 import EditTripModal from './EditTripModal';
 
@@ -21,6 +22,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [isAddMomentOpen, setIsAddMomentOpen] = useState(false);
   const [isEditTripOpen, setIsEditTripOpen] = useState(false);
+  const [selectedMomentToEdit, setSelectedMomentToEdit] = useState<Moment | null>(null);
   const [selectedImage, setSelectedImage] = useState<{url: string, comment?: string} | null>(null);
 
   const tripDate = useMemo(() => {
@@ -70,21 +72,23 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
     }
   }, [isExpanded, trip.id]);
 
-  const groupedMoments = useMemo(() => {
-    const groups: Record<string, typeof moments[0]['images']> = {};
-    moments.forEach(m => {
-      if (!groups[m.date]) {
-        groups[m.date] = [];
-      }
-      groups[m.date].push(...m.images);
-    });
-
-    return Object.entries(groups).sort(([dateA], [dateB]) => dateA.localeCompare(dateB));
+  const sortedMoments = useMemo(() => {
+    return [...moments].sort((a, b) => a.date.localeCompare(b.date));
   }, [moments]);
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClick?.(trip.id);
+  };
+
+  const handleDeleteMoment = async (e: React.MouseEvent, momentId: string) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this whole moment?')) return;
+    try {
+      await deleteDoc(doc(db, 'moments', momentId));
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
   };
 
   return (
@@ -188,39 +192,65 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                 <div className="flex h-24 items-center justify-center">
                   <div className="text-[10px] font-bold uppercase tracking-widest text-natural-muted/50 animate-pulse">Loading Memories...</div>
                 </div>
-              ) : groupedMoments.length > 0 ? (
+              ) : sortedMoments.length > 0 ? (
                 <div className="flex flex-col gap-8">
-                  {groupedMoments.map(([dateString, images]) => {
-                    const dateObj = new Date(dateString + 'T00:00:00');
-                    let formattedDate = dateString;
+                  {sortedMoments.map((moment) => {
+                    const dateObj = new Date(moment.date + 'T00:00:00');
+                    let formattedDate = moment.date;
                     if (!isNaN(dateObj.getTime())) {
                       formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
                     }
                     
                     return (
-                      <div key={dateString} className="space-y-4 relative">
+                      <div key={moment.id} className="space-y-4 relative">
                         <div className="flex items-center gap-4">
                           <h5 className="text-[10px] font-bold uppercase tracking-[0.2em] text-natural-muted shrink-0 relative z-10 bg-white pr-4">
                              {formattedDate}
                           </h5>
                           <div className="h-px bg-natural-border flex-1"></div>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                          {images.map((img, idx) => (
-                            <div 
-                              key={idx} 
-                              onClick={(e) => { e.stopPropagation(); setSelectedImage(img); }}
-                              className="cursor-pointer group flex flex-col gap-2"
-                            >
-                              <div className="aspect-[4/3] overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5">
-                                <img src={img.url} alt={`Memory ${idx}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                              </div>
-                              {img.comment && (
-                                <p className="text-sm font-medium text-natural-text line-clamp-2 px-1">{img.comment}</p>
-                              )}
+                          {isOwnerView && (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedMomentToEdit(moment); }}
+                                className="flex h-6 w-6 items-center justify-center rounded-full bg-natural-sage/10 text-natural-sage hover:bg-natural-sage hover:text-white transition-all"
+                                title="Edit Moment"
+                              >
+                                <PencilLine className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={(e) => handleDeleteMoment(e, moment.id)}
+                                className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                title="Delete Moment"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
                             </div>
-                          ))}
+                          )}
                         </div>
+                        {moment.note && (
+                          <div className="relative overflow-hidden rounded-2xl bg-natural-sage/5 p-5 border border-natural-sage/20 shadow-sm sm:p-6 text-base italic leading-relaxed text-natural-text">
+                            <div className="absolute left-0 top-0 h-full w-1.5 bg-natural-sage"></div>
+                            {moment.note}
+                          </div>
+                        )}
+                        {moment.images.length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                            {moment.images.map((img, idx) => (
+                              <div 
+                                key={idx} 
+                                onClick={(e) => { e.stopPropagation(); setSelectedImage(img); }}
+                                className="cursor-pointer group flex flex-col gap-2"
+                              >
+                                <div className="aspect-[4/3] overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5">
+                                  <img src={img.url} alt={`Memory ${idx}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                                </div>
+                                {img.comment && (
+                                  <p className="text-sm font-medium text-natural-text line-clamp-2 px-1">{img.comment}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -241,6 +271,14 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
           isOpen={isAddMomentOpen} 
           onClose={() => setIsAddMomentOpen(false)} 
           tripId={trip.id} 
+        />
+      )}
+
+      {isOwnerView && (
+        <EditMomentModal
+          isOpen={!!selectedMomentToEdit}
+          onClose={() => setSelectedMomentToEdit(null)}
+          moment={selectedMomentToEdit}
         />
       )}
 

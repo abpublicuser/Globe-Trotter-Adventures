@@ -24,9 +24,9 @@ export default function EditTripModal({ isOpen, onClose, trip }: EditTripModalPr
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(trip.name);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setPreview(trip.coverImageUrl);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setErrorStatus(null);
     }
   }, [isOpen, trip]);

@@ -42,13 +42,11 @@ service cloud.firestore {
 
     function isValidTripUpdate(data) {
       return data.keys().hasAll(['name', 'coverImageUrl', 'userId', 'userName', 'userEmail', 'createdAt'])
-        && data.keys().size() == 6
         && data.name is string && data.name.size() <= 100
-        && data.coverImageUrl is string && data.coverImageUrl.size() <= 1045000
+        && data.coverImageUrl is string && data.coverImageUrl.size() <= 10485760
         && data.userId == existing().userId
         && data.userName == existing().userName
-        && data.userEmail == existing().userEmail
-        && data.createdAt == existing().createdAt;
+        && data.userEmail == existing().userEmail;
     }
 
     function isValidMomentCreate(data) {
