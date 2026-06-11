@@ -7,7 +7,7 @@ import TripDetail from './TripDetail';
 import CreateTripModal from './CreateTripModal';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Plus, Compass, Loader2 } from 'lucide-react';
+import { Compass, Loader2 } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 
 export default function MyTrips() {
@@ -90,10 +90,19 @@ export default function MyTrips() {
           <select
             id="my-trip-select"
             value={selectedDropdownTripId}
-            onChange={(e) => setSelectedDropdownTripId(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value === 'new_journey') {
+                setIsCreateModalOpen(true);
+                return;
+              }
+              setSelectedDropdownTripId(e.target.value);
+            }}
             className="w-full rounded-xl border border-natural-border bg-white px-4 py-3 text-natural-text focus:border-natural-sage focus:outline-none focus:ring-2 focus:ring-natural-sage/20"
           >
             <option value="" disabled>-- Choose a journey --</option>
+            <option value="new_journey" className="font-bold text-natural-sage">
+              + New Journey
+            </option>
             {trips.map(trip => {
               const d = trip.createdAt?.toDate?.();
               const dateStr = d ? `${d.getFullYear()} ${d.toLocaleDateString('en-US', { month: 'short' })}` : '';
@@ -105,16 +114,6 @@ export default function MyTrips() {
             })}
           </select>
         </div>
-
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 rounded-2xl bg-natural-sage px-8 py-4 font-bold uppercase tracking-widest text-white shadow-lg shadow-natural-sage/10 transition-all hover:bg-natural-sage-hover shrink-0"
-        >
-          <Plus className="h-5 w-5" />
-          New Journey
-        </motion.button>
       </header>
 
       {trips.length === 0 ? (
@@ -129,9 +128,14 @@ export default function MyTrips() {
           </button>
         </div>
       ) : !selectedDropdownTripId ? (
-        <div className="flex h-[40vh] flex-col items-center justify-center gap-4 text-natural-muted/50">
-          <Compass className="h-16 w-16 opacity-30" />
-          <p className="text-xl font-medium">Please select a journey from the dropdown.</p>
+        <div className="flex flex-col items-center justify-center gap-6 text-center mt-12 mb-16 py-12 px-4 rounded-3xl bg-white border border-natural-border shadow-sm">
+          <h1 className="text-4xl font-bold tracking-tight text-natural-text sm:text-5xl">
+            Your <span className="text-natural-sage">Journeys</span>
+          </h1>
+          <p className="max-w-xl text-lg text-natural-muted leading-relaxed">
+            Manage your travel stories, edit your past moments, and expand your adventures. Select a journey from the dropdown above to view or update it, or create a new one.
+          </p>
+          <Compass className="h-20 w-20 opacity-20 text-natural-sage mt-2" />
         </div>
       ) : (
         <div className="flex flex-col gap-4">

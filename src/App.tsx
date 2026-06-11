@@ -12,7 +12,7 @@ export default function App() {
       
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {activeTab === 'explore' ? (
-          <Explore onStartJourney={() => setActiveTab('my-trips')} />
+          <Explore />
         ) : (
           <MyTrips />
         )}
@@ -25,7 +25,7 @@ export default function App() {
             Firebase Linked
           </span>
         </div>
-        <div>Globe Trotter Gallery &copy; 2026</div>
+        <div>Globe Trotter Adventures &copy; 2026</div>
       </footer>
     </div>
   );

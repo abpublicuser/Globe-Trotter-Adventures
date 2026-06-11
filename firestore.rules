@@ -12,6 +12,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAuthor() {
+      return request.auth != null && request.auth.token.email in ['abpublicuser@gmail.com', 'rbalaji70@gmail.com'];
+    }
+
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
@@ -78,16 +82,16 @@ service cloud.firestore {
     // 4. Collection Rules
     match /trips/{tripId} {
       allow read: if true;
-      allow create: if isSignedIn() && isValidTripCreate(incoming());
-      allow update: if isSignedIn() && isOwner(existing().userId) && isValidTripUpdate(incoming());
-      allow delete: if isSignedIn() && isOwner(existing().userId);
+      allow create: if isAuthor() && isValidTripCreate(incoming());
+      allow update: if isAuthor() && isOwner(existing().userId) && isValidTripUpdate(incoming());
+      allow delete: if isAuthor() && isOwner(existing().userId);
     }
 
     match /moments/{momentId} {
       allow read: if true;
-      allow create: if isSignedIn() && isValidMomentCreate(incoming());
-      allow update: if isSignedIn() && isOwner(existing().userId) && isValidMomentUpdate(incoming());
-      allow delete: if isSignedIn() && isOwner(existing().userId);
+      allow create: if isAuthor() && isValidMomentCreate(incoming());
+      allow update: if isAuthor() && isOwner(existing().userId) && isValidMomentUpdate(incoming());
+      allow delete: if isAuthor() && isOwner(existing().userId);
     }
   }
 }

@@ -1,15 +1,14 @@
-import { db, auth, signIn } from '../firebase';
+import { db } from '../firebase';
 import { collection, query, onSnapshot } from 'firebase/firestore';
-import { useAuthState } from 'react-firebase-hooks/auth';
 import { Trip, OperationType } from '../types';
 import { handleFirestoreError } from '../utils';
 import TripCard from './TripCard';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Map as MapIcon, Loader2 } from 'lucide-react';
+import logo from '../assets/images/globe_trotter_logo_1781195701047.jpg';
 
-export default function Explore({ onStartJourney }: { onStartJourney?: () => void }) {
-  const [user] = useAuthState(auth);
+export default function Explore() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedTripId, setSelectedTripId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +67,7 @@ export default function Explore({ onStartJourney }: { onStartJourney?: () => voi
       className="space-y-6"
     >
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end justify-between">
-        <div className="w-full max-w-sm">
+        <div className="w-full">
           <label htmlFor="trip-select" className="block text-sm font-bold uppercase tracking-widest text-natural-muted mb-2">
             Select a Journey
           </label>
@@ -90,18 +89,6 @@ export default function Explore({ onStartJourney }: { onStartJourney?: () => voi
             })}
           </select>
         </div>
-        <button
-          onClick={() => {
-            if (!user) {
-              signIn();
-            } else if (onStartJourney) {
-              onStartJourney();
-            }
-          }}
-          className="flex items-center gap-2 rounded-2xl bg-natural-sage px-8 py-4 font-bold uppercase tracking-widest text-white shadow-lg shadow-natural-sage/10 transition-all hover:bg-natural-sage-hover shrink-0"
-        >
-          {user ? 'New Journey' : 'Sign In To Start'}
-        </button>
       </header>
 
       {trips.length === 0 ? (
@@ -110,9 +97,18 @@ export default function Explore({ onStartJourney }: { onStartJourney?: () => voi
           <p className="text-xl font-medium">No journeys shared yet.</p>
         </div>
       ) : !selectedTripId ? (
-        <div className="flex h-[40vh] flex-col items-center justify-center gap-4 text-natural-muted/50">
-          <MapIcon className="h-16 w-16 opacity-30" />
-          <p className="text-xl font-medium">Please select a journey from the dropdown.</p>
+        <div className="flex flex-col items-center justify-center gap-6 text-center mt-12 mb-16 py-16 px-4 rounded-3xl bg-white border border-natural-border shadow-sm">
+          <h2 className="text-3xl font-medium tracking-tight text-natural-text sm:text-4xl mb-2">Welcome to</h2>
+          <div className="relative h-48 w-48 sm:h-56 sm:w-56 overflow-hidden rounded-full shadow-md border-4 border-white">
+            <img 
+              src={logo} 
+              alt="Globe Trotter Adventures Logo" 
+              className="h-full w-full object-cover scale-105" 
+            />
+          </div>
+          <p className="max-w-xl text-lg text-natural-muted leading-relaxed mt-4">
+            Embark on a visual journey through our curated travel stories. Select a journey from the dropdown above to explore adventures and memories from around the world.
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">

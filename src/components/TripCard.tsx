@@ -17,7 +17,6 @@ interface TripCardProps {
 
 export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [moments, setMoments] = useState<Moment[]>([]);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [isAddMomentOpen, setIsAddMomentOpen] = useState(false);
@@ -45,32 +44,23 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
     }
   };
 
-  const toggleExpanded = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!isExpanded) {
-      setIsLoadingImages(true);
-    }
-    setIsExpanded(!isExpanded);
-  };
-
   useEffect(() => {
-    if (isExpanded) {
-      const q = query(
-        collection(db, 'moments'),
-        where('tripId', '==', trip.id)
-      );
-      
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const momentData: Moment[] = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Moment));
-        setMoments(momentData);
-        setIsLoadingImages(false);
-      });
-      return () => unsubscribe();
-    }
-  }, [isExpanded, trip.id]);
+    setIsLoadingImages(true);
+    const q = query(
+      collection(db, 'moments'),
+      where('tripId', '==', trip.id)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const momentData: Moment[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Moment));
+      setMoments(momentData);
+      setIsLoadingImages(false);
+    });
+    return () => unsubscribe();
+  }, [trip.id]);
 
   const sortedMoments = useMemo(() => {
     return [...moments].sort((a, b) => a.date.localeCompare(b.date));
@@ -100,8 +90,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
       className="overflow-hidden rounded-3xl bg-white ring-1 ring-natural-border shadow-sm transition-shadow hover:shadow-md"
     >
       <div 
-        onClick={toggleExpanded}
-        className="relative flex min-h-[180px] sm:min-h-[240px] cursor-pointer select-none flex-col justify-end overflow-hidden p-5 transition-all hover:opacity-95 sm:p-6 md:p-8"
+        className="relative flex min-h-[180px] sm:min-h-[240px] select-none flex-col justify-end overflow-hidden p-5 sm:p-6 md:p-8"
       >
         <div className="absolute inset-0 z-0">
           <img
@@ -136,26 +125,12 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                 <Edit2 className="h-4 w-4" />
               </button>
             )}
-            <motion.div
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white shadow-sm backdrop-blur-md"
-            >
-              <ChevronDown className="h-5 w-5" />
-            </motion.div>
           </div>
         </div>
       </div>
 
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="border-t border-natural-border"
-          >
-            <div className="p-4 sm:p-5 space-y-4">
+      <div className="border-t border-natural-border">
+        <div className="p-4 sm:p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h4 className="text-xs font-bold uppercase tracking-widest text-natural-text">Trip Memories</h4>
                 <div className="flex flex-wrap items-center gap-2">
@@ -262,9 +237,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                 </div>
               )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </div>
 
       {isOwnerView && (
         <AddMomentModal 
