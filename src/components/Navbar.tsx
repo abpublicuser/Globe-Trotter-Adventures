@@ -3,6 +3,8 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { User } from 'lucide-react';
 import { motion } from 'motion/react';
 
+import logo from '../assets/images/globe_trotter_logo_1781195701047.jpg';
+
 export default function Navbar({ activeTab, setActiveTab }: { activeTab: 'explore' | 'my-trips', setActiveTab: (tab: 'explore' | 'my-trips') => void }) {
   const [user] = useAuthState(auth);
 
@@ -14,9 +16,13 @@ export default function Navbar({ activeTab, setActiveTab }: { activeTab: 'explor
             <motion.div
               initial={{ rotate: -20, scale: 0.8 }}
               animate={{ rotate: 0, scale: 1 }}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-natural-sage font-display text-xl font-black italic text-white shadow-lg shadow-natural-sage/20"
+              className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-full shadow-lg"
             >
-              G
+              <img
+                src={logo}
+                alt="Globe Trotter ABV Adventures Logo"
+                className="h-full w-full max-w-none object-cover scale-105"
+              />
             </motion.div>
             <span className="hidden text-2xl font-semibold tracking-tight text-natural-text sm:block sm:text-3xl">
               Globe Trotter

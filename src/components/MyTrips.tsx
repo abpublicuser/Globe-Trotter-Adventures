@@ -13,6 +13,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 export default function MyTrips() {
   const [user] = useAuthState(auth);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [selectedDropdownTripId, setSelectedDropdownTripId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -81,21 +82,35 @@ export default function MyTrips() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <header className="flex flex-col items-end justify-between gap-4 sm:flex-row">
-        <div>
-          <h1 className="text-4xl font-medium tracking-tight text-natural-text sm:text-5xl">
-            My Journeys
-          </h1>
-          <p className="mt-1 text-base italic text-natural-muted">
-            Your personal collection of wanderlust
-          </p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end justify-between">
+        <div className="w-full max-w-sm">
+          <label htmlFor="my-trip-select" className="block text-sm font-bold uppercase tracking-widest text-natural-muted mb-2">
+            Select a Journey
+          </label>
+          <select
+            id="my-trip-select"
+            value={selectedDropdownTripId}
+            onChange={(e) => setSelectedDropdownTripId(e.target.value)}
+            className="w-full rounded-xl border border-natural-border bg-white px-4 py-3 text-natural-text focus:border-natural-sage focus:outline-none focus:ring-2 focus:ring-natural-sage/20"
+          >
+            <option value="" disabled>-- Choose a journey --</option>
+            {trips.map(trip => {
+              const d = trip.createdAt?.toDate?.();
+              const dateStr = d ? `${d.getFullYear()} ${d.toLocaleDateString('en-US', { month: 'short' })}` : '';
+              return (
+                <option key={trip.id} value={trip.id}>
+                  {dateStr ? `${dateStr} - ${trip.name}` : trip.name}
+                </option>
+              );
+            })}
+          </select>
         </div>
 
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 rounded-2xl bg-natural-sage px-8 py-4 font-bold uppercase tracking-widest text-white shadow-lg shadow-natural-sage/10 transition-all hover:bg-natural-sage-hover"
+          className="flex items-center gap-2 rounded-2xl bg-natural-sage px-8 py-4 font-bold uppercase tracking-widest text-white shadow-lg shadow-natural-sage/10 transition-all hover:bg-natural-sage-hover shrink-0"
         >
           <Plus className="h-5 w-5" />
           New Journey
@@ -113,10 +128,15 @@ export default function MyTrips() {
             Start your first trip
           </button>
         </div>
+      ) : !selectedDropdownTripId ? (
+        <div className="flex h-[40vh] flex-col items-center justify-center gap-4 text-natural-muted/50">
+          <Compass className="h-16 w-16 opacity-30" />
+          <p className="text-xl font-medium">Please select a journey from the dropdown.</p>
+        </div>
       ) : (
         <div className="flex flex-col gap-4">
           <AnimatePresence mode="popLayout">
-            {trips.map((trip) => (
+            {trips.filter(t => t.id === selectedDropdownTripId).map((trip) => (
               <TripCard 
                 key={trip.id} 
                 trip={trip} 

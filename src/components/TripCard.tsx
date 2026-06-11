@@ -97,45 +97,49 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
     >
       <div 
         onClick={toggleExpanded}
-        className="flex cursor-pointer select-none items-stretch justify-between gap-4 p-4 transition-colors hover:bg-natural-bg/50 sm:p-5"
+        className="relative flex min-h-[180px] sm:min-h-[240px] cursor-pointer select-none flex-col justify-end overflow-hidden p-5 transition-all hover:opacity-95 sm:p-6 md:p-8"
       >
-        <div className="flex flex-1 flex-col justify-center py-2">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-natural-muted">
-            <Calendar className="h-3 w-3" />
-            {tripDate}
-          </div>
-          <h3 className="mt-1 text-xl font-bold leading-tight tracking-tight text-natural-text sm:text-2xl lg:text-3xl">
-            {trip.name}
-          </h3>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs font-medium text-natural-muted">by {trip.userName}</span>
-          </div>
+        <div className="absolute inset-0 z-0">
+          <img
+            src={trip.coverImageUrl}
+            alt={trip.name}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
         </div>
 
-        <div className="flex flex-shrink-0 items-center justify-end gap-3 sm:gap-6">
-          <div className="h-20 w-24 overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 sm:h-24 sm:w-32 md:h-28 md:w-40">
-            <img
-              src={trip.coverImageUrl}
-              alt={trip.name}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
+        <div className="relative z-10 flex items-end justify-between gap-4 w-full">
+          <div className="flex flex-1 flex-col justify-end">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/80">
+              <Calendar className="h-3 w-3" />
+              {tripDate}
+            </div>
+            <h3 className="mt-2 text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl drop-shadow-md">
+              {trip.name}
+            </h3>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-sm font-medium text-white/80 drop-shadow-sm">by {trip.userName}</span>
+            </div>
           </div>
-          {isOwnerView && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsEditTripOpen(true); }}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-natural-sage/10 text-natural-sage hover:bg-natural-sage hover:text-white transition-all"
+
+          <div className="flex flex-shrink-0 items-center justify-end gap-3 pb-2">
+            {isOwnerView && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsEditTripOpen(true); }}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-natural-text"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
+            )}
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white shadow-sm backdrop-blur-md"
             >
-              <Edit2 className="h-4 w-4" />
-            </button>
-          )}
-          <motion.div
-            animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-natural-sage/10 text-natural-sage"
-          >
-            <ChevronDown className="h-5 w-5" />
-          </motion.div>
+              <ChevronDown className="h-5 w-5" />
+            </motion.div>
+          </div>
         </div>
       </div>
 
