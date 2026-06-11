@@ -8,9 +8,10 @@ import { motion, AnimatePresence } from 'motion/react';
 interface CreateTripModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (tripId: string) => void;
 }
 
-export default function CreateTripModal({ isOpen, onClose }: CreateTripModalProps) {
+export default function CreateTripModal({ isOpen, onClose, onSuccess }: CreateTripModalProps) {
   const [name, setName] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -49,7 +50,7 @@ export default function CreateTripModal({ isOpen, onClose }: CreateTripModalProp
     setErrorStatus(null);
 
     try {
-      await addDoc(collection(db, 'trips'), {
+      const docRef = await addDoc(collection(db, 'trips'), {
         name,
         coverImageUrl: preview,
         userId: auth.currentUser.uid,
@@ -60,7 +61,11 @@ export default function CreateTripModal({ isOpen, onClose }: CreateTripModalProp
 
       setName('');
       setPreview(null);
-      onClose();
+      if (onSuccess) {
+        onSuccess(docRef.id);
+      } else {
+        onClose();
+      }
     } catch (error) {
       console.error('Failed to create trip:', error);
       setErrorStatus('Failed to start trip. Please try again.');

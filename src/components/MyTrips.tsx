@@ -32,9 +32,7 @@ export default function MyTrips() {
         id: doc.id,
         ...doc.data()
       } as Trip)).sort((a, b) => {
-        const timeA = a.createdAt?.toMillis?.() || 0;
-        const timeB = b.createdAt?.toMillis?.() || 0;
-        return timeB - timeA;
+        return b.name.localeCompare(a.name);
       });
       setTrips(tripData);
       setIsLoading(false);
@@ -104,11 +102,9 @@ export default function MyTrips() {
               + New Journey
             </option>
             {trips.map(trip => {
-              const d = trip.createdAt?.toDate?.();
-              const dateStr = d ? `${d.getFullYear()} ${d.toLocaleDateString('en-US', { month: 'short' })}` : '';
               return (
                 <option key={trip.id} value={trip.id}>
-                  {dateStr ? `${dateStr} - ${trip.name}` : trip.name}
+                  {trip.name}
                 </option>
               );
             })}
@@ -155,6 +151,10 @@ export default function MyTrips() {
       <CreateTripModal 
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={(tripId) => {
+          setIsCreateModalOpen(false);
+          setSelectedTripId(tripId);
+        }}
       />
     </motion.div>
   );

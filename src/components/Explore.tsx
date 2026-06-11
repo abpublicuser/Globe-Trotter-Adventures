@@ -22,9 +22,7 @@ export default function Explore() {
         id: doc.id,
         ...doc.data()
       } as Trip)).sort((a, b) => {
-        const timeA = a.createdAt?.toMillis?.() || 0;
-        const timeB = b.createdAt?.toMillis?.() || 0;
-        return timeB - timeA;
+        return b.name.localeCompare(a.name);
       });
       setTrips(tripData);
       setIsLoading(false);
@@ -79,11 +77,9 @@ export default function Explore() {
           >
             <option value="" disabled>-- Choose a journey --</option>
             {trips.map(trip => {
-              const d = trip.createdAt?.toDate?.();
-              const dateStr = d ? `${d.getFullYear()} ${d.toLocaleDateString('en-US', { month: 'short' })}` : '';
               return (
                 <option key={trip.id} value={trip.id}>
-                  {dateStr ? `${dateStr} - ${trip.name}` : trip.name}
+                  {trip.name}
                 </option>
               );
             })}

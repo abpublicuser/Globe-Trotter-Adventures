@@ -1,7 +1,7 @@
 import { Trip, Moment } from '../types';
 import { db } from '../firebase';
 import { doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { Calendar, Trash2, ChevronDown, Image as ImageIcon, Plus, Edit2, PencilLine } from 'lucide-react';
+import { Calendar, Trash2, Image as ImageIcon, Plus, Edit2, PencilLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo, useEffect } from 'react';
 import AddMomentModal from './AddMomentModal';
@@ -18,11 +18,13 @@ interface TripCardProps {
 export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [moments, setMoments] = useState<Moment[]>([]);
-  const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [isLoadingImages, setIsLoadingImages] = useState(true);
   const [isAddMomentOpen, setIsAddMomentOpen] = useState(false);
   const [isEditTripOpen, setIsEditTripOpen] = useState(false);
   const [selectedMomentToEdit, setSelectedMomentToEdit] = useState<Moment | null>(null);
   const [selectedImage, setSelectedImage] = useState<{url: string, comment?: string} | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [momentToDelete, setMomentToDelete] = useState<string | null>(null);
 
   const tripDate = useMemo(() => {
     const d = trip.createdAt?.toDate?.() || new Date();
@@ -31,21 +33,23 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this journey and all its moments?')) return;
-    
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteTrip = async () => {
     setIsDeleting(true);
     try {
       await deleteDoc(doc(db, 'trips', trip.id));
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Failed to delete trip.');
     } finally {
       setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
   useEffect(() => {
-    setIsLoadingImages(true);
+    let isMounted = true;
     const q = query(
       collection(db, 'moments'),
       where('tripId', '==', trip.id)
@@ -56,10 +60,16 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
         id: doc.id,
         ...doc.data()
       } as Moment));
-      setMoments(momentData);
-      setIsLoadingImages(false);
+      
+      if (isMounted) {
+        setMoments(momentData);
+        setIsLoadingImages(false);
+      }
     });
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [trip.id]);
 
   const sortedMoments = useMemo(() => {
@@ -73,11 +83,17 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
 
   const handleDeleteMoment = async (e: React.MouseEvent, momentId: string) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this whole moment?')) return;
+    setMomentToDelete(momentId);
+  };
+
+  const confirmDeleteMoment = async () => {
+    if (!momentToDelete) return;
     try {
-      await deleteDoc(doc(db, 'moments', momentId));
+      await deleteDoc(doc(db, 'moments', momentToDelete));
     } catch (error) {
       console.error('Delete failed:', error);
+    } finally {
+      setMomentToDelete(null);
     }
   };
 
@@ -137,7 +153,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                   {isOwnerView && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setIsAddMomentOpen(true); }}
-                      className="flex items-center gap-1 rounded-xl bg-natural-sage/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-natural-sage transition-colors hover:bg-natural-sage hover:text-white"
+                      className="flex items-center gap-1.5 rounded-xl bg-natural-sage/10 px-3 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-natural-sage transition-colors hover:bg-natural-sage hover:text-white"
                     >
                       <Plus className="h-3 w-3" />
                       Add Photos
@@ -146,7 +162,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                   {onClick && (
                     <button
                       onClick={handleActionClick}
-                      className="text-xs font-bold uppercase tracking-widest text-natural-sage hover:text-natural-sage-hover hover:underline pl-2"
+                      className="flex items-center gap-1.5 rounded-xl bg-natural-sage/10 px-3 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-natural-sage transition-colors hover:bg-natural-sage hover:text-white"
                     >
                       View Details
                     </button>
@@ -155,9 +171,11 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                     <button
                       onClick={handleDelete}
                       disabled={isDeleting}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-natural-muted/50 hover:bg-red-50 hover:text-red-500 transition-all disabled:opacity-50"
+                      title="Delete Journey"
+                      className="flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500 hover:text-white disabled:opacity-50"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
+                      Delete Journey
                     </button>
                   )}
                 </div>
@@ -270,6 +288,65 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
             comment={selectedImage.comment}
             onClose={() => setSelectedImage(null)} 
           />
+        )}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl"
+            >
+              <h3 className="mb-2 text-xl font-bold text-natural-text">Delete Journey?</h3>
+              <p className="mb-6 text-sm leading-relaxed text-natural-muted">
+                Are you sure you want to delete this journey and all its moments? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 rounded-full bg-natural-sage/10 py-2.5 font-bold text-natural-sage transition-colors hover:bg-natural-sage/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteTrip}
+                  disabled={isDeleting}
+                  className="flex-1 rounded-full bg-red-500 py-2.5 font-bold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {momentToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl"
+            >
+              <h3 className="mb-2 text-xl font-bold text-natural-text">Delete Moment?</h3>
+              <p className="mb-6 text-sm leading-relaxed text-natural-muted">
+                Are you sure you want to delete this moment? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setMomentToDelete(null)}
+                  className="flex-1 rounded-full bg-natural-sage/10 py-2.5 font-bold text-natural-sage transition-colors hover:bg-natural-sage/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteMoment}
+                  className="flex-1 rounded-full bg-red-500 py-2.5 font-bold text-white transition-colors hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </motion.div>
