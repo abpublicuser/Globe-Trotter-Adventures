@@ -1,7 +1,7 @@
 import { Trip, Moment } from '../types';
 import { db } from '../firebase';
 import { doc, deleteDoc, updateDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { Calendar, Trash2, Image as ImageIcon, Plus, Edit2, PencilLine } from 'lucide-react';
+import { Trash2, Image as ImageIcon, Plus, Edit2, PencilLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo, useEffect } from 'react';
 import AddMomentModal from './AddMomentModal';
@@ -26,11 +26,6 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [momentToDelete, setMomentToDelete] = useState<string | null>(null);
   const [imageToDelete, setImageToDelete] = useState<{moment: Moment, imageIndex: number} | null>(null);
-
-  const tripDate = useMemo(() => {
-    const d = trip.createdAt?.toDate?.() || new Date();
-    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  }, [trip.createdAt]);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -147,10 +142,6 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
 
         <div className="relative z-10 flex items-end justify-between gap-4 w-full">
           <div className="flex flex-1 flex-col justify-end">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/80">
-              <Calendar className="h-3 w-3" />
-              {tripDate}
-            </div>
             <h3 className="mt-2 text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl drop-shadow-md">
               {trip.name}
             </h3>
