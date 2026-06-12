@@ -5,6 +5,7 @@ import { handleFirestoreError } from '../utils';
 import TripCard from './TripCard';
 import TripDetail from './TripDetail';
 import CreateTripModal from './CreateTripModal';
+import CreateTripFromItineraryModal from './CreateTripFromItineraryModal';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Compass, Loader2 } from 'lucide-react';
@@ -18,6 +19,7 @@ export default function MyTrips() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateItineraryModalOpen, setIsCreateItineraryModalOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -93,6 +95,10 @@ export default function MyTrips() {
                 setIsCreateModalOpen(true);
                 return;
               }
+              if (e.target.value === 'new_journey_from_itinerary') {
+                setIsCreateItineraryModalOpen(true);
+                return;
+              }
               setSelectedDropdownTripId(e.target.value);
             }}
             className="w-full rounded-xl border border-natural-border bg-white px-4 py-3 text-natural-text focus:border-natural-sage focus:outline-none focus:ring-2 focus:ring-natural-sage/20"
@@ -100,6 +106,9 @@ export default function MyTrips() {
             <option value="" disabled>-- Choose a journey --</option>
             <option value="new_journey" className="font-bold text-natural-sage">
               + New Journey
+            </option>
+            <option value="new_journey_from_itinerary" className="font-bold text-natural-sage">
+              + New Journey from Itinerary
             </option>
             {trips.map(trip => {
               return (
@@ -153,6 +162,14 @@ export default function MyTrips() {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={(tripId) => {
           setIsCreateModalOpen(false);
+          setSelectedTripId(tripId);
+        }}
+      />
+      <CreateTripFromItineraryModal
+        isOpen={isCreateItineraryModalOpen}
+        onClose={() => setIsCreateItineraryModalOpen(false)}
+        onSuccess={(tripId) => {
+          setIsCreateItineraryModalOpen(false);
           setSelectedTripId(tripId);
         }}
       />

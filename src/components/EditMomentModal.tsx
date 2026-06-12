@@ -126,9 +126,10 @@ export default function EditMomentModal({ isOpen, onClose, moment }: EditMomentM
                   <div>
                     <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-natural-muted">Date</label>
                     <input
-                      type="date"
+                      type="text"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
+                      placeholder="e.g., Day 1, or 2023-10-01"
                       className="w-full rounded-2xl border border-natural-border bg-white px-6 py-4 text-natural-text transition-all focus:border-natural-sage focus:outline-none focus:ring-4 focus:ring-natural-sage/5"
                       required
                     />

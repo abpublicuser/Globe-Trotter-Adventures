@@ -1,14 +1,71 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import { GoogleGenAI, Type } from "@google/genai";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // API routes (if any) could go here
+  // Needed to parse JSON body
+  app.use(express.json());
+
+  // API routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  app.post("/api/parse-itinerary", async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "GEMINI_API_KEY not set" });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Parse this travel itinerary into a structured list of days. Extract the day name, the main location or summary as the location, and note/activities. Here is the itinerary:\n\n${req.body.itinerary}`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                date: {
+                  type: Type.STRING,
+                  description: "The name, number, or exact date of the day, e.g. 'Day 1', 'Day 2', '2023-10-01'",
+                },
+                location: {
+                  type: Type.STRING,
+                  description: "The location for this day, or a short summary title if no specific location is mentioned.",
+                },
+                note: {
+                  type: Type.STRING,
+                  description: "The combined notes or activities for this day.",
+                }
+              },
+              required: ["date", "location", "note"]
+            }
+          }
+        }
+      });
+      
+      const text = response.text;
+      if (!text) {
+        throw new Error("No text returned from Gemini");
+      }
+      res.json(JSON.parse(text));
+    } catch (err: unknown) {
+      console.error('Itinerary parse error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: msg });
+    }
   });
 
   // Vite middleware for development

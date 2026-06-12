@@ -163,7 +163,17 @@ export default function TripDetail({ tripId, onBack }: { tripId: string, onBack:
                   </div>
                   <div>
                     <p className="text-sm font-bold uppercase tracking-widest text-natural-text">
-                      {new Date(moment.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {(()=>{
+                        const d = new Date(moment.date + 'T00:00:00');
+                        if (!isNaN(d.getTime())) {
+                          return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+                        }
+                        const d2 = new Date(moment.date);
+                        if (!isNaN(d2.getTime())) {
+                          return d2.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+                        }
+                        return moment.date;
+                      })()}
                     </p>
                     <p className="text-xs italic text-natural-muted">Shared by {moment.userName}</p>
                   </div>

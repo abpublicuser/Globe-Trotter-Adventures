@@ -174,7 +174,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                       className="flex items-center gap-1.5 rounded-xl bg-natural-sage/10 px-3 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-natural-sage transition-colors hover:bg-natural-sage hover:text-white"
                     >
                       <Plus className="h-3 w-3" />
-                      Add Photos
+                      Add Moments
                     </button>
                   )}
                   {onClick && (
