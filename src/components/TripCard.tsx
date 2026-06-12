@@ -1,6 +1,6 @@
 import { Trip, Moment } from '../types';
 import { db } from '../firebase';
-import { doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Calendar, Trash2, Image as ImageIcon, Plus, Edit2, PencilLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo, useEffect } from 'react';
@@ -25,6 +25,7 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
   const [selectedImage, setSelectedImage] = useState<{url: string, comment?: string} | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [momentToDelete, setMomentToDelete] = useState<string | null>(null);
+  const [imageToDelete, setImageToDelete] = useState<{moment: Moment, imageIndex: number} | null>(null);
 
   const tripDate = useMemo(() => {
     const d = trip.createdAt?.toDate?.() || new Date();
@@ -94,6 +95,32 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
       console.error('Delete failed:', error);
     } finally {
       setMomentToDelete(null);
+    }
+  };
+
+  const handleDeleteSingleImage = async (e: React.MouseEvent, moment: Moment, imageIndex: number) => {
+    e.stopPropagation();
+    setImageToDelete({ moment, imageIndex });
+  };
+
+  const confirmDeleteImage = async () => {
+    if (!imageToDelete) return;
+    const { moment, imageIndex } = imageToDelete;
+
+    try {
+      const newImages = moment.images.filter((_, idx) => idx !== imageIndex);
+      
+      if (newImages.length === 0 && !moment.note?.trim()) {
+        await deleteDoc(doc(db, 'moments', moment.id));
+      } else {
+        await updateDoc(doc(db, 'moments', moment.id), {
+          images: newImages
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+    } finally {
+      setImageToDelete(null);
     }
   };
 
@@ -232,10 +259,20 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                               <div 
                                 key={idx} 
                                 onClick={(e) => { e.stopPropagation(); setSelectedImage(img); }}
-                                className="cursor-pointer group flex flex-col gap-2"
+                                className="cursor-pointer group relative flex flex-col gap-2"
                               >
-                                <div className="aspect-[4/3] overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5">
+                                <div className="aspect-[4/3] relative overflow-hidden rounded-xl bg-natural-bg ring-1 ring-black/5">
                                   <img src={img.url} alt={`Memory ${idx}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                                  
+                                  {isOwnerView && (
+                                    <button
+                                      onClick={(e) => handleDeleteSingleImage(e, moment, idx)}
+                                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-all hover:bg-red-500 group-hover:opacity-100"
+                                      title="Delete Photo"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  )}
                                 </div>
                                 {img.comment && (
                                   <p className="text-sm font-medium text-natural-text line-clamp-2 px-1">{img.comment}</p>
@@ -340,6 +377,35 @@ export default function TripCard({ trip, onClick, isOwnerView }: TripCardProps) 
                 </button>
                 <button
                   onClick={confirmDeleteMoment}
+                  className="flex-1 rounded-full bg-red-500 py-2.5 font-bold text-white transition-colors hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {imageToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl"
+            >
+              <h3 className="mb-2 text-xl font-bold text-natural-text">Delete Photo?</h3>
+              <p className="mb-6 text-sm leading-relaxed text-natural-muted">
+                Are you sure you want to delete this photo? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setImageToDelete(null)}
+                  className="flex-1 rounded-full bg-natural-sage/10 py-2.5 font-bold text-natural-sage transition-colors hover:bg-natural-sage/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteImage}
                   className="flex-1 rounded-full bg-red-500 py-2.5 font-bold text-white transition-colors hover:bg-red-600"
                 >
                   Delete

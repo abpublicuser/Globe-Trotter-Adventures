@@ -1,9 +1,9 @@
 import { db, auth } from '../firebase';
-import { collection, query, where, onSnapshot, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Trip, Moment, OperationType } from '../types';
 import { handleFirestoreError } from '../utils';
 import AddMomentModal from './AddMomentModal';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Calendar, Trash2, MessageSquare, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -14,6 +14,8 @@ export default function TripDetail({ tripId, onBack }: { tripId: string, onBack:
   const [moments, setMoments] = useState<Moment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddMomentOpen, setIsAddMomentOpen] = useState(false);
+  const [momentToDelete, setMomentToDelete] = useState<string | null>(null);
+  const [imageToDelete, setImageToDelete] = useState<{moment: Moment, imageIndex: number} | null>(null);
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -46,11 +48,42 @@ export default function TripDetail({ tripId, onBack }: { tripId: string, onBack:
   }, [tripId]);
 
   const handleDeleteMoment = async (momentId: string) => {
-    if (!window.confirm('Delete this moment?')) return;
+    setMomentToDelete(momentId);
+  };
+
+  const confirmDeleteMoment = async () => {
+    if (!momentToDelete) return;
     try {
-      await deleteDoc(doc(db, 'moments', momentId));
+      await deleteDoc(doc(db, 'moments', momentToDelete));
     } catch (error) {
       console.error('Delete failed:', error);
+    } finally {
+      setMomentToDelete(null);
+    }
+  };
+
+  const handleDeleteSingleImage = async (moment: Moment, imageIndex: number) => {
+    setImageToDelete({ moment, imageIndex });
+  };
+
+  const confirmDeleteImage = async () => {
+    if (!imageToDelete) return;
+    const { moment, imageIndex } = imageToDelete;
+
+    try {
+      const newImages = moment.images.filter((_, idx) => idx !== imageIndex);
+      
+      if (newImages.length === 0 && !moment.note?.trim()) {
+        await deleteDoc(doc(db, 'moments', moment.id));
+      } else {
+        await updateDoc(doc(db, 'moments', moment.id), {
+          images: newImages
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+    } finally {
+      setImageToDelete(null);
     }
   };
 
@@ -149,8 +182,18 @@ export default function TripDetail({ tripId, onBack }: { tripId: string, onBack:
               <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {moment.images.map((img, idx) => (
                   <div key={idx} className="group relative overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-natural-border transition-all hover:shadow-xl">
-                    <div className="aspect-square overflow-hidden">
+                    <div className="aspect-square relative overflow-hidden">
                       <img src={img.url} alt={`Moment ${idx}`} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      
+                      {isOwner && (
+                        <button
+                          onClick={() => handleDeleteSingleImage(moment, idx)}
+                          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-all hover:bg-red-500 group-hover:opacity-100"
+                          title="Delete Photo"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      )}
                     </div>
                     {img.comment && (
                       <div className="p-6">
@@ -179,6 +222,67 @@ export default function TripDetail({ tripId, onBack }: { tripId: string, onBack:
         onClose={() => setIsAddMomentOpen(false)}
         tripId={tripId}
       />
+
+      <AnimatePresence>
+        {momentToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl"
+            >
+              <h3 className="mb-2 text-xl font-bold text-natural-text">Delete Moment?</h3>
+              <p className="mb-6 text-sm leading-relaxed text-natural-muted">
+                Are you sure you want to delete this moment? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setMomentToDelete(null)}
+                  className="flex-1 rounded-full bg-natural-sage/10 py-2.5 font-bold text-natural-sage transition-colors hover:bg-natural-sage/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteMoment}
+                  className="flex-1 rounded-full bg-red-500 py-2.5 font-bold text-white transition-colors hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {imageToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl"
+            >
+              <h3 className="mb-2 text-xl font-bold text-natural-text">Delete Photo?</h3>
+              <p className="mb-6 text-sm leading-relaxed text-natural-muted">
+                Are you sure you want to delete this photo? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setImageToDelete(null)}
+                  className="flex-1 rounded-full bg-natural-sage/10 py-2.5 font-bold text-natural-sage transition-colors hover:bg-natural-sage/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteImage}
+                  className="flex-1 rounded-full bg-red-500 py-2.5 font-bold text-white transition-colors hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
