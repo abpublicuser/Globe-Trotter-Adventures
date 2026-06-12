@@ -25,11 +25,64 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_vite = require("vite");
+var import_genai = require("@google/genai");
 async function startServer() {
   const app = (0, import_express.default)();
   const PORT = 3e3;
+  app.use(import_express.default.json());
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+  app.post("/api/parse-itinerary", async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "GEMINI_API_KEY not set" });
+      }
+      const ai = new import_genai.GoogleGenAI({
+        apiKey,
+        httpOptions: { headers: { "User-Agent": "aistudio-build" } }
+      });
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Parse this travel itinerary into a structured list of days. Extract the day name, the main location or summary as the location, and note/activities. Here is the itinerary:
+
+${req.body.itinerary}`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: import_genai.Type.ARRAY,
+            items: {
+              type: import_genai.Type.OBJECT,
+              properties: {
+                date: {
+                  type: import_genai.Type.STRING,
+                  description: "The name, number, or exact date of the day, e.g. 'Day 1', 'Day 2', '2023-10-01'"
+                },
+                location: {
+                  type: import_genai.Type.STRING,
+                  description: "The location for this day, or a short summary title if no specific location is mentioned."
+                },
+                note: {
+                  type: import_genai.Type.STRING,
+                  description: "The combined notes or activities for this day."
+                }
+              },
+              required: ["date", "location", "note"]
+            }
+          }
+        }
+      });
+      const text = response.text;
+      if (!text) {
+        throw new Error("No text returned from Gemini");
+      }
+      res.json(JSON.parse(text));
+    } catch (err) {
+      console.error("Itinerary parse error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: msg });
+    }
   });
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
