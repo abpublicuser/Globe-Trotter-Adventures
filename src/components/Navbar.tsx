@@ -37,7 +37,7 @@ export default function Navbar({ activeTab, setActiveTab }: { activeTab: 'explor
               />
             </motion.div>
             <span className="text-lg font-semibold tracking-tight text-natural-text sm:text-3xl">
-              Globe Trotter Adventures
+              Globe Trotter Adventures <span className="ml-2 text-xs font-bold uppercase tracking-widest text-natural-sage">v1.0</span>
             </span>
           </div>
 
